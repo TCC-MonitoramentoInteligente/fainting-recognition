@@ -1,16 +1,38 @@
 import math
 import numpy as np
 
-from model.person import Person
+
+class Person:
+    # Object saved from last frame
+    object = None
+    # Current object that matched with the one from last frame
+    current_object = None
+    # Final state
+    state = None
+    # Time that the person is in the state
+    time = None
+    # Time that the person is in stopped state
+    stopped_time = None
+    # Highest height in the normal state
+    highest_height = None
+    # Box coordinates from last update
+    position = None
 
 
 class Algorithm:
     label = "person"
-    state_normal = 0
-    state_warning = 1
-    state_fallen = 2
+
+    state_normal = "Normal"
+    state_horizontal_warning = "Horizontal warning"
+    state_vertical_warning = "Vertical warning"
+    state_movement_alert = "Movement alert"
+    state_fallen = "Fallen"
 
     _beta_coefficient = 0.7
+
+    _horizontal_time = 1000
+    _vertical_time = 2000
+    _stopped_time = 3000
 
     # List containing all Person object detected
     _person_list = []
@@ -25,38 +47,52 @@ class Algorithm:
         """
         self._match_object_with_person(object_list)
         self._clean_person_list()
+
         for obj in object_list:
             # Person from previous frame
             pfpf = self._get_person(obj)
+
             if pfpf is None:
                 self._add_person(obj)
             else:
-                # Here we define alpha as the relation between height and width
-                alpha = obj.height / obj.width
-                # Here we define beta as the relation between highest_height and height
-                beta = obj.height / (pfpf.highest_height * self._beta_coefficient)
-                # Check if person is fallen in horizontal
-                if alpha < 1.0:
-                    # Check the time to determine the state
-                    if pfpf.time is None:
-                        pfpf.time = time
-                        pfpf.state = self.state_warning
-                    elif time - pfpf.time > 1:
-                        pfpf.state = self.state_fallen
-                # Check if person is fallen in vertical
-                elif beta < 1.0:
-                    # print("height={} | highest_height={} | beta={}".format(obj.height, pfpf.highest_height, beta))
-                    # Check the time to determine the state
-                    if pfpf.time is None:
-                        pfpf.time = time
-                        pfpf.state = self.state_warning
-                    elif time - pfpf.time > 2:
-                        pfpf.state = self.state_fallen
-                else:
-                    # Reset
-                    pfpf.state = self.state_normal
+                if is_moving(pfpf):
+                    pfpf.stopped_time = None
                     pfpf.time = None
+                    pfpf.state = self.state_normal
+                else:
+                    if pfpf.stopped_time is None:
+                        pfpf.stopped_time = time
+
+                    # Here we define alpha as the relation between height and width
+                    alpha = obj.height / obj.width
+                    # Here we define beta as the relation between highest_height and height
+                    beta = obj.height / (pfpf.highest_height * self._beta_coefficient)
+
+                    # Check if person is fallen in horizontal
+                    if alpha < 1.0:
+                        # Check the time to determine the state
+                        if pfpf.time is None:
+                            pfpf.time = time
+                            pfpf.state = self.state_horizontal_warning
+                        elif time - pfpf.time > self._horizontal_time:
+                            pfpf.state = self.state_fallen
+                    # Check if person is fallen in vertical
+                    elif beta < 1.0:
+                        # Check the time to determine the state
+                        if pfpf.time is None:
+                            pfpf.time = time
+                            pfpf.state = self.state_vertical_warning
+                        elif time - pfpf.time > self._vertical_time:
+                            pfpf.state = self.state_fallen
+                    elif pfpf.stopped_time is not None and time - pfpf.stopped_time > self._stopped_time:
+                        pfpf.state = self.state_movement_alert
+                    else:
+                        # Reset
+                        pfpf.state = self.state_normal
+                        pfpf.time = None
+
                 self._update_person(pfpf, obj)
+
         return self._person_list
 
     def _update_person(self, person, obj):
@@ -68,7 +104,6 @@ class Algorithm:
         """
         if person.state == self.state_normal and obj.height > person.highest_height:
             person.highest_height = obj.height
-        person.movement_vector = (obj.x - person.object.x, obj.y - person.object.y)
         person.object = obj
 
     def _add_person(self, obj):
@@ -81,6 +116,7 @@ class Algorithm:
         person.object = obj
         person.state = self.state_normal
         person.highest_height = obj.height
+        person.position = (obj.x, obj.y, obj.x2, obj.y2)
         self._person_list.append(person)
 
     def _clean_person_list(self):
@@ -100,7 +136,7 @@ class Algorithm:
         :return: The same person, stored in previous frame
         """
         for person in self._person_list:
-            if person.current_object == obj:
+            if person.current_object is not None and person.current_object == obj:
                 return person
         return None
 
@@ -147,3 +183,41 @@ def get_points_distance(point1, point2):
     :return: int distance
     """
     return int(math.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2))
+
+
+def draw_box(frame, obj, color_bgr, thickness=2):
+    """
+    Draw a rectangle in an opencv frame
+    :param frame: opencv frame
+    :param obj: Object with detected object
+    :param color_bgr: color
+    :param thickness: thickness of rectangle
+    :return: frame
+    """
+    top_left = (obj.x, obj.y)
+    bottom_right = (obj.x + obj.width, obj.y + obj.height)
+    return cv2.rectangle(frame, top_left, bottom_right, color_bgr, thickness)
+
+
+def is_moving(person):
+    """
+    Check if person is moving
+    If the current position is outside of the last box saved,
+    so the person is considered in movement
+    :param person: Person object
+    :return: bool
+    """
+    x, y, x2, y2 = 0, 1, 2, 3
+    # Box position from last update
+    box = person.position
+    # Current position
+    cp = (person.current_object.cx, person.current_object.cy)
+
+    # (0, 0) coordinate is in the top left point
+    # Check if current position is inside of the last saved box
+    if cp[x] < box[x] or cp[x] > box[x2] or cp[y] < box[y] or cp[y] > box[y2]:
+        person.position = (person.current_object.x, person.current_object.y,
+                           person.current_object.x2, person.current_object.y2)
+        return True
+    else:
+        return False
