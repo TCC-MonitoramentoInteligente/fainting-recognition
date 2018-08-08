@@ -3,7 +3,7 @@ import numpy as np
 
 
 class Person:
-    # Object saved from last frame
+    # object saved from last frame
     object = None
     # Current object that matched with the one from last frame
     current_object = None
@@ -51,7 +51,7 @@ class FaintingRecognition:
         """
         Process the list of detected objects and returns a list containing Person objects,
         each one with your state
-        :param object_list: list of Objects representing detected person
+        :param object_list: list of dicts representing detected person
         :param time: relative time in seconds, in video context
         :return: list containing Person objects with their state
         """
@@ -74,9 +74,9 @@ class FaintingRecognition:
                         pfpf.stopped_time = time
 
                     # Here we define alpha as the relation between height and width
-                    alpha = obj.height / obj.width
+                    alpha = obj['height'] / obj['width']
                     # Here we define beta as the relation between highest_height and height
-                    beta = obj.height / (pfpf.highest_height * self._beta_coefficient)
+                    beta = obj['height'] / (pfpf.highest_height * self._beta_coefficient)
 
                     # Check if person is fallen in horizontal
                     if alpha < 1.0:
@@ -109,24 +109,24 @@ class FaintingRecognition:
         """
         Updates person transitioning from previous frame to current frame
         :param person: Person object with data from previous frame to be updated
-        :param obj: Object with data from current frame
+        :param obj: dict with data from current frame
         :return:
         """
-        if person.state == self.state_normal and obj.height > person.highest_height:
-            person.highest_height = obj.height
+        if person.state == self.state_normal and obj['height'] > person.highest_height:
+            person.highest_height = obj['height']
         person.object = obj
 
     def _add_person(self, obj):
         """
         Create and add person in normal state to person_list
-        :param obj: Object that represents a person detection
+        :param obj: dict that represents a person detection
         :return:
         """
         person = Person()
         person.object = obj
         person.state = self.state_normal
-        person.highest_height = obj.height
-        person.position = (obj.x, obj.y, obj.x2, obj.y2)
+        person.highest_height = obj['height']
+        person.position = (obj['x'], obj['y'], obj['x2'], obj['y2'])
         self._person_list.append(person)
 
     def _clean_person_list(self):
@@ -179,10 +179,10 @@ def get_box_center(obj):
     """
     Get the box center coordinate, once box detection comes with
     top left x and y
-    :param obj: Object
+    :param obj: dict
     :return: tuple (center x, center y)
     """
-    return obj.x + obj.width / 2, obj.y + obj.height / 2
+    return obj['x'] + obj['width'] / 2, obj['y'] + obj['height'] / 2
 
 
 def get_points_distance(point1, point2):
@@ -193,20 +193,6 @@ def get_points_distance(point1, point2):
     :return: int distance
     """
     return int(math.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2))
-
-
-def draw_box(frame, obj, color_bgr, thickness=2):
-    """
-    Draw a rectangle in an opencv frame
-    :param frame: opencv frame
-    :param obj: Object with detected object
-    :param color_bgr: color
-    :param thickness: thickness of rectangle
-    :return: frame
-    """
-    top_left = (obj.x, obj.y)
-    bottom_right = (obj.x + obj.width, obj.y + obj.height)
-    return cv2.rectangle(frame, top_left, bottom_right, color_bgr, thickness)
 
 
 def is_moving(person):
