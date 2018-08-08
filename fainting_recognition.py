@@ -19,7 +19,7 @@ class Person:
     position = None
 
 
-class Algorithm:
+class FaintingRecognition:
     label = "person"
 
     state_normal = "Normal"
@@ -30,12 +30,22 @@ class Algorithm:
 
     _beta_coefficient = 0.7
 
-    _horizontal_time = 1000
-    _vertical_time = 2000
-    _stopped_time = 3000
+    _horizontal_time = 1
+    _vertical_time = 2
+    _stopped_time = 3
 
     # List containing all Person object detected
     _person_list = []
+
+    def event(self, object_list, time):
+        pl = self.process(object_list, time)
+        event = None
+        for p in pl:
+            if p.state == self.state_fallen:
+                return self.state_fallen
+            elif p.state == self.state_movement_alert:
+                event = self.state_movement_alert
+        return event
 
     def process(self, object_list, time):
         """
