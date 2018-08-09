@@ -214,8 +214,9 @@ def is_moving(person):
     # (0, 0) coordinate is in the top left point
     # Check if current position is inside of the last saved box
     if cp[x] < box[x] or cp[x] > box[x2] or cp[y] < box[y] or cp[y] > box[y2]:
-        person.position = (person.current_object.x, person.current_object.y,
-                           person.current_object.x2, person.current_object.y2)
+        person.position = (person.current_object['x'], person.current_object['y'],
+                           person.current_object['x'] + person.current_object['width'],
+                           person.current_object['y'] + person.current_object['height'])
         return True
     else:
         return False
