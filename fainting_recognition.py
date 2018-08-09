@@ -126,7 +126,8 @@ class FaintingRecognition:
         person.object = obj
         person.state = self.state_normal
         person.highest_height = obj['height']
-        person.position = (obj['x'], obj['y'], obj['x2'], obj['y2'])
+        person.position = (obj['x'], obj['y'],
+                           obj['x'] + obj['width'], obj['y'] + obj['height'])
         self._person_list.append(person)
 
     def _clean_person_list(self):
@@ -207,7 +208,8 @@ def is_moving(person):
     # Box position from last update
     box = person.position
     # Current position
-    cp = (person.current_object.cx, person.current_object.cy)
+    cp = (int((person.current_object['x'] + person.current_object['width']) / 2),
+          int((person.current_object['y'] + person.current_object['height']) / 2))
 
     # (0, 0) coordinate is in the top left point
     # Check if current position is inside of the last saved box
