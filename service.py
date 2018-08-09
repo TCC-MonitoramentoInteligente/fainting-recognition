@@ -23,8 +23,7 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     result = json.loads(msg.payload.decode())
-    # TODO: this is not the time relative to the video
-    event = algorithm.event(result.get('objects'), time.time())
+    event = algorithm.event(result['objects'], result['time'])
     if event is not None:
         data = {'event': event, 'camera': result['id']}
         threading.Thread(target=post, args=(action_url, data)).start()
