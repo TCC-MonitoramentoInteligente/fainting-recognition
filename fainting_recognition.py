@@ -17,6 +17,8 @@ class Person:
     highest_height = None
     # Box coordinates from last update
     position = None
+    # Persisting counter
+    persisting = None
 
 
 class FaintingRecognition:
@@ -34,8 +36,11 @@ class FaintingRecognition:
     _vertical_time = 2
     _stopped_time = 3
 
-    # List containing all Person object detected
-    _person_list = []
+    _persisting_number = 5
+
+    def __init__(self):
+        # List containing all Person object detected
+        self._person_list = []
 
     def event(self, object_list, time):
         pl = self.process(object_list, time)
@@ -55,6 +60,8 @@ class FaintingRecognition:
         :param time: relative time in seconds, in video context
         :return: list containing Person objects with their state
         """
+        object_list = [obj for obj in object_list if obj['label'] == self.label]
+
         self._match_object_with_person(object_list)
         self._clean_person_list()
 
@@ -126,8 +133,11 @@ class FaintingRecognition:
         person.object = obj
         person.state = self.state_normal
         person.highest_height = obj['height']
-        person.position = (obj['x'], obj['y'],
-                           obj['x'] + obj['width'], obj['y'] + obj['height'])
+        person.persisting = self._persisting_number
+        person.position = (obj['x'],
+                           obj['y'],
+                           obj['x'] + obj['width'],
+                           obj['y'] + obj['height'])
         self._person_list.append(person)
 
     def _clean_person_list(self):
@@ -138,7 +148,12 @@ class FaintingRecognition:
         for person in self._person_list:
             # Person that do not match with any object means that the the person is no more in the frame
             if person.current_object is None:
-                self._person_list.remove(person)
+                if person.persisting == 0:
+                    self._person_list.remove(person)
+                else:
+                    person.persisting -= 1
+            else:
+                person.persisting = self._persisting_number
 
     def _get_person(self, obj):
         """
@@ -193,7 +208,7 @@ def get_points_distance(point1, point2):
     :param point2: tuple with point 2
     :return: int distance
     """
-    return int(math.sqrt((point1[0]-point2[0])**2 + (point1[1]-point2[1])**2))
+    return int(math.sqrt((point1[0] - point2[0]) ** 2 + (point1[1] - point2[1]) ** 2))
 
 
 def is_moving(person):
@@ -208,13 +223,13 @@ def is_moving(person):
     # Box position from last update
     box = person.position
     # Current position
-    cp = (int((person.current_object['x'] + person.current_object['width']) / 2),
-          int((person.current_object['y'] + person.current_object['height']) / 2))
+    cp = get_box_center(person.current_object)
 
     # (0, 0) coordinate is in the top left point
-    # Check if current position is inside of the last saved box
+    # Check if current position is outside of the last saved box
     if cp[x] < box[x] or cp[x] > box[x2] or cp[y] < box[y] or cp[y] > box[y2]:
-        person.position = (person.current_object['x'], person.current_object['y'],
+        person.position = (person.current_object['x'],
+                           person.current_object['y'],
                            person.current_object['x'] + person.current_object['width'],
                            person.current_object['y'] + person.current_object['height'])
         return True
