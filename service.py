@@ -7,7 +7,7 @@ import requests
 from fainting_recognition import FaintingRecognition
 
 broker_address = 'localhost'
-action_url = 'http://localhost:8000/action-service/event/'
+action_url = 'http://localhost:8000/actions-service/event/'
 
 
 def post(url, data):
@@ -16,9 +16,7 @@ def post(url, data):
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
-    client.subscribe('object-detection/objects')
-    client.subscribe('object-detection/add')
-    client.subscribe('object-detection/remove')
+    client.subscribe('object-detection/#')
 
 
 def on_message(client, userdata, msg):
