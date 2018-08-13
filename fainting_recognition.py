@@ -41,16 +41,15 @@ class FaintingRecognition:
     def __init__(self):
         # List containing all Person object detected
         self._person_list = []
+        self._event = False
 
     def event(self, object_list, time):
-        pl = self.process(object_list, time)
-        event = None
-        for p in pl:
-            if p.state == self.state_fallen:
-                return self.state_fallen
-            elif p.state == self.state_movement_alert:
-                event = self.state_movement_alert
-        return event
+        if self.event:
+            self.process(object_list, time)
+            return False
+        else:
+            self.process(object_list, time)
+            return self.event
 
     def process(self, object_list, time):
         """
@@ -64,6 +63,7 @@ class FaintingRecognition:
 
         self._match_object_with_person(object_list)
         self._clean_person_list()
+        self._event = False
 
         for obj in object_list:
             # Person from previous frame
@@ -93,6 +93,7 @@ class FaintingRecognition:
                             pfpf.state = self.state_horizontal_warning
                         elif time - pfpf.time > self._horizontal_time:
                             pfpf.state = self.state_fallen
+                            self._event = True
                     # Check if person is fallen in vertical
                     elif beta < 1.0:
                         # Check the time to determine the state
@@ -101,8 +102,10 @@ class FaintingRecognition:
                             pfpf.state = self.state_vertical_warning
                         elif time - pfpf.time > self._vertical_time:
                             pfpf.state = self.state_fallen
+                            self._event = True
                     elif pfpf.stopped_time is not None and time - pfpf.stopped_time > self._stopped_time:
                         pfpf.state = self.state_movement_alert
+                        self._event = True
                     else:
                         # Reset
                         pfpf.state = self.state_normal
