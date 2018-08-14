@@ -1,5 +1,6 @@
 import json
 import threading
+import time
 
 import paho.mqtt.client as mqtt
 import requests
@@ -14,6 +15,17 @@ def post(url, data):
     requests.post(url, data)
 
 
+def suppress_event(instance_id):
+    try:
+        if time.time() - event_history[instance_id] < event_suppression_time:
+            print('Event from instance {} was suppressed)'.format(instance_id))
+            return True
+        else:
+            return False
+    except KeyError:
+        return False
+
+
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code " + str(rc))
     client.subscribe('object-detection/#')
@@ -21,12 +33,20 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     result = json.loads(msg.payload.decode())
-    algorithm = algorithms[result['id']]
-    event = algorithm.event(result['objects'], float(result['time']))
-    if event is not None:
-        print('New event detected from camera id {}'.format(result['id']))
-        data = {'event': event, 'camera': result['id']}
+    instance_id = result['id']
+    video_time = float(result['time'])
+    objects = result['objects']
+    try:
+        algorithm = algorithms[instance_id]
+    except KeyError:
+        algorithms[instance_id] = algorithm = FaintingRecognition()
+        print('New algorithm instance created with id {}'.format(instance_id))
+    event = algorithm.event(objects, video_time)
+    if event is not None and not suppress_event(instance_id):
+        print("New event '{}' detected from camera id {}".format(event, instance_id))
+        data = {'event': event, 'camera': instance_id}
         threading.Thread(target=post, args=(action_url, data)).start()
+        event_history[instance_id] = time.time()
 
 
 def on_add(client, userdata, msg):
@@ -43,6 +63,7 @@ def on_remove(client, userdata, msg):
     try:
         del algorithms[instance_id]
         print('Algorithm instance {} removed'.format(instance_id))
+        del event_history[instance_id]
     except KeyError:
         pass
 
@@ -56,6 +77,8 @@ client.message_callback_add('object-detection/add', on_add)
 client.message_callback_add('object-detection/remove', on_remove)
 
 algorithms = {}
+event_history = {}
+event_suppression_time = 60 * 2
 
 try:
     client.loop_forever()
