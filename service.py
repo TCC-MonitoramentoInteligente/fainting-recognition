@@ -18,7 +18,7 @@ def post(url, data):
 def suppress_event(instance_id):
     try:
         if time.time() - event_history[instance_id] < event_suppression_time:
-            print('Event from instance {} was suppressed)'.format(instance_id))
+            print('Event from instance {} was suppressed'.format(instance_id))
             return True
         else:
             return False
@@ -33,7 +33,7 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, msg):
     result = json.loads(msg.payload.decode())
-    instance_id = result['id']
+    instance_id = result['cam_id']
     video_time = float(result['time'])
     objects = result['objects']
     try:
