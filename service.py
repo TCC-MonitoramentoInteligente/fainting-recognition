@@ -12,13 +12,19 @@ action_url = 'http://10.242.103.152:8000/actions-service/event/'
 
 
 def post(url, data):
-    requests.post(url, data)
+    r = requests.post(url, data)
+    if r.status_code != 200:
+        client.publish(topic='fainting-recognition/logs/error',
+                       payload='[action] Event from camera {} '
+                               'could not be notified to actions service'.format(data['camera']))
 
 
 def suppress_event(instance_id):
     try:
         if time.time() - event_history[instance_id] < event_suppression_time:
             print('Event from instance {} was suppressed'.format(instance_id))
+            client.publish(topic='fainting-recognition/logs/success',
+                           payload='[event suppression] Event from instance {} was suppressed'.format(instance_id))
             return True
         else:
             return False
@@ -41,6 +47,8 @@ def on_message(client, userdata, msg):
     except KeyError:
         algorithms[instance_id] = algorithm = FaintingRecognition()
         print('New algorithm instance created with id {}'.format(instance_id))
+        client.publish(topic='fainting-recognition/logs/success',
+                       payload='[algorithm instance] New algorithm instance created with id {}'.format(instance_id))
     event = algorithm.event(objects, video_time)
     if event is not None and not suppress_event(instance_id):
         print("New event '{}' detected from camera id {}".format(event, instance_id))
@@ -54,6 +62,8 @@ def on_add(client, userdata, msg):
     if algorithms.get(instance_id) is None:
         algorithms[instance_id] = FaintingRecognition()
         print('New algorithm instance created with id {}'.format(instance_id))
+        client.publish(topic='fainting-recognition/logs/success',
+                       payload='[algorithm instance] New algorithm instance created with id {}'.format(instance_id))
     else:
         print('Algorithm instance {} already exists'.format(instance_id))
 
@@ -63,6 +73,8 @@ def on_remove(client, userdata, msg):
     try:
         del algorithms[instance_id]
         print('Algorithm instance {} removed'.format(instance_id))
+        client.publish(topic='fainting-recognition/logs/success',
+                       payload='[algorithm instance] Algorithm instance {} removed'.format(instance_id))
         del event_history[instance_id]
     except KeyError:
         pass
