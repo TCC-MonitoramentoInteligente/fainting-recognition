@@ -12,11 +12,14 @@ action_url = 'http://10.242.103.152:8000/actions-service/event/'
 
 
 def post(url, data):
-    r = requests.post(url, data)
-    if r.status_code != 200:
-        client.publish(topic='fainting-recognition/logs/error',
-                       payload='[action] Event from camera {} '
-                               'could not be notified to actions service'.format(data['camera']))
+    error = 'Action error. Event from camera {} could not ' \
+            'be notified to actions service'.format(data['camera'])
+    try:
+        action_request = requests.get(url, data, timeout=3)
+        if action_request.status_code != requests.codes.ok:
+            client.publish(topic='fainting-recognition/logs/error', payload=error)
+    except (requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
+        client.publish(topic='fainting-recognition/logs/error', payload=error)
 
 
 def suppress_event(instance_id):
