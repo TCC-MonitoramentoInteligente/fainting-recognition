@@ -7,8 +7,8 @@ import requests
 
 from fainting_recognition import FaintingRecognition
 
-broker_address = '10.242.103.152'
-action_url = 'http://10.242.103.152:8000/actions-service/event/'
+broker_address = '10.1.0.3'
+action_url = 'http://10.1.0.3:8000/actions-service/event/'
 
 
 def post(url, data):
