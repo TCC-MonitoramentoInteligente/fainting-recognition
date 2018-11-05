@@ -7,8 +7,11 @@ import requests
 
 from fainting_recognition import FaintingRecognition
 
-broker_address = '10.1.0.3'
-action_url = 'http://10.1.0.3:8000/actions-service/event/'
+BROKER_IP = '10.1.0.2'
+ACTIONS_SERVICE_IP, ACTIONS_SERVICE_PORT = '10.1.0.5', 8050
+
+action_url = 'http://{}:{}/actions-service/event/'\
+    .format(ACTIONS_SERVICE_IP, ACTIONS_SERVICE_PORT)
 
 
 def post(url, data):
@@ -86,7 +89,7 @@ def on_remove(client, userdata, msg):
 
 
 client = mqtt.Client()
-client.connect(broker_address)
+client.connect(BROKER_IP)
 
 client.on_connect = on_connect
 client.message_callback_add('object-detection/objects', on_message)
