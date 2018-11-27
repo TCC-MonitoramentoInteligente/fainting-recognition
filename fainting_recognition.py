@@ -15,7 +15,7 @@ class Person:
     stopped_time = None
     # Highest height in the normal state
     highest_height = None
-    # Box coordinates from last update
+    # Box coordinates from last update ((x1, y1), (x2, y2))
     position = None
     # Persisting counter
     persisting = None
@@ -30,13 +30,14 @@ class FaintingRecognition:
     state_movement_alert = "Movement alert"
     state_fallen = "Fallen"
 
+    _alpha_coefficient = 0.9
     _beta_coefficient = 0.7
 
-    _horizontal_time = 1
-    _vertical_time = 2
-    _stopped_time = 3
+    _horizontal_time = 4
+    _vertical_time = 8
+    _stopped_time = 20
 
-    _persisting_number = 5
+    _persisting_number = 100
 
     def __init__(self):
         # List containing all Person object detected
@@ -95,10 +96,10 @@ class FaintingRecognition:
                     # Here we define alpha as the relation between height and width
                     alpha = obj['height'] / obj['width']
                     # Here we define beta as the relation between highest_height and height
-                    beta = obj['height'] / (pfpf.highest_height * self._beta_coefficient)
+                    beta = obj['height'] / pfpf.highest_height
 
                     # Check if person is fallen in horizontal
-                    if alpha < 1.0:
+                    if alpha < self._alpha_coefficient:
                         # Check the time to determine the state
                         if pfpf.time is None:
                             pfpf.time = time
@@ -106,13 +107,14 @@ class FaintingRecognition:
                         elif time - pfpf.time > self._horizontal_time:
                             pfpf.state = self.state_fallen
                     # Check if person is fallen in vertical
-                    elif beta < 1.0:
+                    elif beta < self._beta_coefficient:
                         # Check the time to determine the state
                         if pfpf.time is None:
                             pfpf.time = time
                             pfpf.state = self.state_vertical_warning
                         elif time - pfpf.time > self._vertical_time:
                             pfpf.state = self.state_fallen
+                    # Check if the person is not moving
                     elif pfpf.stopped_time is not None and time - pfpf.stopped_time > self._stopped_time:
                         pfpf.state = self.state_movement_alert
                     else:
@@ -227,7 +229,8 @@ def is_moving(person):
     """
     Check if person is moving
     If the current position is outside of the last box saved,
-    so the person is considered in movement
+    so the person is considered in movement. In other words,
+    person is moving if IoU = 0
     :param person: Person object
     :return: bool
     """
