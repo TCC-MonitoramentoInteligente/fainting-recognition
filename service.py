@@ -60,7 +60,7 @@ def on_message(client, userdata, msg):
         print("New event '{}' detected from camera id {}".format(event, instance_id))
         client.publish(topic='fainting-recognition/logs/success',
                        payload="[event detected] Event '{}' detected from camera id {}".format(event, instance_id))
-        data = {'event': event, 'camera': instance_id}
+        data = {'event': event, 'cam_id': instance_id}
         threading.Thread(target=post, args=(action_url, data)).start()
         event_history[instance_id] = time.time()
 
