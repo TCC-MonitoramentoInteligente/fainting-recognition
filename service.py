@@ -16,7 +16,7 @@ action_url = 'http://{}:{}/actions-service/event/'\
 
 def post(url, data):
     error = 'Action error. Event from camera {} could not ' \
-            'be notified to actions service'.format(data['camera'])
+            'be notified to actions service'.format(data['cam_id'])
     try:
         action_request = requests.get(url, data, timeout=3)
         if action_request.status_code != requests.codes.ok:
