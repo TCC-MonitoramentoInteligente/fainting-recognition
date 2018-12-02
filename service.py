@@ -89,7 +89,11 @@ def on_remove(client, userdata, msg):
 
 
 client = mqtt.Client()
-client.connect(BROKER_IP)
+try:
+    client.connect(BROKER_IP)
+except (OSError, ConnectionRefusedError):
+    print('Could not connect to broker. Check if it is running and try again.')
+    exit(0)
 
 client.on_connect = on_connect
 client.message_callback_add('object-detection/objects', on_message)
