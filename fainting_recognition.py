@@ -30,11 +30,11 @@ class FaintingRecognition:
     state_movement_alert = "Movement alert"
     state_fallen = "Fallen"
 
-    _alpha_coefficient = 0.9
-    _beta_coefficient = 0.7
+    _alpha_coefficient = 0.7
+    _beta_coefficient = 0.5
 
     _horizontal_time = 4
-    _vertical_time = 8
+    _vertical_time = 6
     _stopped_time = 20
 
     _persisting_number = 100
