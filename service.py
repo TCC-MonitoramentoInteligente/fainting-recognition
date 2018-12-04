@@ -18,7 +18,7 @@ def post(url, data):
     error = 'Action error. Event from camera {} could not ' \
             'be notified to actions service'.format(data['cam_id'])
     try:
-        action_request = requests.get(url, data, timeout=3)
+        action_request = requests.post(url, data, timeout=5)
         if action_request.status_code != requests.codes.ok:
             client.publish(topic='fainting-recognition/logs/error', payload=error)
     except (requests.exceptions.ConnectTimeout, requests.exceptions.ConnectionError):
